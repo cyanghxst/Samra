@@ -16,13 +16,30 @@ jobs:
         uses: actions/checkout@v4
       - name: Build
         run: |
-          xcodebuild build -scheme Samra -project Samra.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO BUILD_DIR=${{ github.workspace }}/xcodebuild
+          cat > ExportOptions.plist <<-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>signingCertificate</key>
+              <string></string>
+              <key>teamID</key>
+              <string></string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild archive -scheme Samra -project Samra.xcodeproj -configuration Release -archivePath ${{ github.workspace }}/build/Samra.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/Samra.xcarchive -exportPath ${{ github.workspace }}/product -exportOptionsPlist ExportOptions.plist
+          
           xcodebuild build -scheme extractutil -project Samra.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO BUILD_DIR=${{ github.workspace }}/xcodebuild
           
-          mkdir -p ${{ github.workspace }}/product
-          cp -R ${{ github.workspace }}/xcodebuild/Release/Samra.app ${{ github.workspace }}/product
-          
-          mv  ${{ github.workspace }}/xcodebuild/Release/extractutil ${{ github.workspace }}/product/Samra.app/Contents/MacOS
+          cp ${{ github.workspace }}/xcodebuild/Release/extractutil ${{ github.workspace }}/product/Samra.app/Contents/MacOS
           
           cd ${{ github.workspace }}/product
           zip -r ${{ github.workspace }}/Samra.zip .
